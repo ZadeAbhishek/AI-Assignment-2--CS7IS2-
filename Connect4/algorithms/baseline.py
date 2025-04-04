@@ -10,7 +10,7 @@ def undo_move(game, col):
 
 def baseline_move_connect4(game, letter):
     """
-    Baseline strategy for Connect 4:
+    Baseline strategy for Connect4:
       1. If a winning move exists for `letter`, return it.
       2. Else, if the opponent has a winning move, block it.
       3. Otherwise, choose a random available move.

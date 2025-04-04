@@ -2,6 +2,7 @@ class Connect4:
     def __init__(self, rows=6, cols=7):
         self.rows = rows
         self.cols = cols
+        # Create a board as a list of lists.
         self.board = [[' ' for _ in range(cols)] for _ in range(rows)]
         self.current_winner = None
 
@@ -23,7 +24,7 @@ class Connect4:
         return len(self.available_moves()) > 0
 
     def make_move(self, col, letter):
-        """Drop a piece into the column. Return True if move was made."""
+        """Drop a piece into the column. Return True if the move was made."""
         if self.board[0][col] != ' ':
             return False  # Column is full.
         for row in reversed(range(self.rows)):

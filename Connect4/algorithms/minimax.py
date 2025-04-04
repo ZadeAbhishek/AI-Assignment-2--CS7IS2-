@@ -1,14 +1,14 @@
 import time
-from algorithms.baseline import undo_move  # Assuming undo_move is identical; otherwise, use a common utility.
+from algorithms.baseline import undo_move
 
-# Global node counter
+# Global node counter.
 node_count = 0
 
 def evaluate_board(game, player):
     """
     A simple evaluation heuristic.
-    Currently returns 0. 
-    You can enhance this by considering potential wins, two/three in a rows, etc.
+    Currently returns 0.
+    You can enhance this by considering potential wins, near-wins, etc.
     """
     return 0
 
@@ -16,14 +16,14 @@ def minimax_connect4(game, player, depth, alpha=-float('inf'), beta=float('inf')
     global node_count
     node_count += 1
 
-    # Time check: if time limit reached, return evaluation immediately.
+    # Check for time limit.
     if start_time and (time.time() - start_time) > time_limit:
         return {"position": None, "score": evaluate_board(game, player)}
 
-    max_player = 'O'  # Computer
+    max_player = 'O'  # Computer.
     other_player = 'X' if player == 'O' else 'O'
     
-    # Terminal condition: previous move wins.
+    # Terminal conditions.
     if game.current_winner == other_player:
         return {"position": None, "score": (len(game.available_moves()) + 1) if other_player == max_player else -1 * (len(game.available_moves()) + 1)}
     elif depth == 0 or not game.empty_squares():
@@ -39,7 +39,7 @@ def minimax_connect4(game, player, depth, alpha=-float('inf'), beta=float('inf')
         sim_score = minimax_connect4(game, other_player, depth - 1, alpha, beta, start_time, time_limit)
         undo_move(game, move)
         sim_score["position"] = move
-        
+
         if player == max_player:
             if sim_score["score"] > best["score"]:
                 best = sim_score
@@ -77,7 +77,7 @@ def minimax_no_ab_connect4(game, player, depth, start_time=None, time_limit=1800
         sim_score = minimax_no_ab_connect4(game, other_player, depth - 1, start_time, time_limit)
         undo_move(game, move)
         sim_score["position"] = move
-        
+
         if player == max_player:
             if sim_score["score"] > best["score"]:
                 best = sim_score
