@@ -1,19 +1,26 @@
 import random
 import os
 import csv
+import time
 from datetime import datetime
 import matplotlib.pyplot as plt
 from game import Connect4
 from algorithms import minimax, qlearning, baseline
 
-def get_computer_move(game, computer_letter, algorithm, use_alpha_beta, depth=4):
+def get_computer_move(game, computer_letter, algorithm, use_alpha_beta, depth=4, time_limit=1800):
     if algorithm == '1':
+        start_time = time.time()
         if use_alpha_beta:
-            move_info = minimax.minimax_connect4(game, computer_letter, depth)
-            return move_info["position"]
+            # Explicitly pass alpha and beta parameters.
+            alpha = -float('inf')
+            beta = float('inf')
+            move_info = minimax.minimax_connect4(game, computer_letter, depth, alpha, beta, start_time=start_time, time_limit=time_limit)
         else:
-            move_info = minimax.minimax_no_ab_connect4(game, computer_letter, depth)
-            return move_info["position"]
+            move_info = minimax.minimax_no_ab_connect4(game, computer_letter, depth, start_time=start_time, time_limit=time_limit)
+        print(f"Minimax visited {minimax.node_count} nodes.")
+        # Reset the counter for next call
+        minimax.node_count = 0
+        return move_info["position"]
     elif algorithm == '2':
         return qlearning.q_learning_move_connect4(game, computer_letter)
     else:
@@ -40,7 +47,8 @@ def play_game_connect4(algorithm, use_alpha_beta, depth=4):
             if game.current_winner == user_letter:
                 print("Baseline (User) wins!")
                 if algorithm == '2':
-                    qlearning.update_terminal_connect4(-1)
+                    # Use -10 penalty for a loss.
+                    qlearning.update_terminal_connect4(-10)
                 return "user"
             turn = 'computer'
         else:
@@ -53,7 +61,8 @@ def play_game_connect4(algorithm, use_alpha_beta, depth=4):
             if game.current_winner == computer_letter:
                 print("Computer wins!")
                 if algorithm == '2':
-                    qlearning.update_terminal_connect4(1)
+                    # Use +10 reward for a win.
+                    qlearning.update_terminal_connect4(10)
                 return "computer"
             turn = 'user'
     print("It's a tie!")
