@@ -4,9 +4,9 @@ import random
 Q_table = {}       # Maps state (as a string) -> dict of {action: Q-value}
 last_state = None  # The previous state encountered
 last_action = None # The action taken in the previous state
-ALPHA = 0.3        # Learning rate
-GAMMA = 0.7        # Discount factor
-EPSILON = 0.2      # Exploration rate
+ALPHA = 0.5        # Learning rate
+GAMMA = 0.9        # Discount factor
+EPSILON = 0.1      # Exploration rate
 
 def state_str(game):
     """Return a string representation of the board state."""
