@@ -30,8 +30,10 @@ def get_move(game, player_letter, algorithm, use_alpha_beta, depth=4, time_limit
         return random.choice(game.available_moves())
 
 def play_game_matchup(matchup, use_alpha_beta, depth=4):
+    """Play a game between two algorithms with improved Q-learning integration."""
     # Create a new Connect4 game.
     game = Connect4()
+    
     # Determine algorithms for the two sides.
     if matchup == "1":   # Baseline vs Minimax
         algo1 = "baseline"
@@ -54,45 +56,68 @@ def play_game_matchup(matchup, use_alpha_beta, depth=4):
     player2_letter = 'O'
     
     print("\nNew Connect4 game!")
-    # game.print_board()
     
     # Randomly decide who goes first.
     turn = "side1" if random.random() < 0.5 else "side2"
     
+    moves_count = 0
+    
     while game.empty_squares():
+        moves_count += 1
+        
         if turn == "side1":
             move = get_move(game, player1_letter, algo1, use_alpha_beta, depth)
             print(f"\n{algo1} chooses move: {move}")
             game.make_move(move, player1_letter)
-            # game.print_board()
+            
             if game.current_winner == player1_letter:
                 print(f"{algo1} wins!")
-                # If Q-learning is used, update terminal rewards:
+                
+                # Reward structure for Q-learning
                 if algo1 == "qlearning":
-                    qlearning.update_terminal_connect4(+100)  # Win: +1
+                    # Higher reward for winning quickly
+                    win_reward = 50 - (0.3 * moves_count)  
+                    qlearning.update_terminal_connect4(max(10, win_reward))
                 if algo2 == "qlearning":
-                    qlearning.update_terminal_connect4(-100)  # Loss: -5
+                    # Loss penalty depends on game length
+                    loss_penalty = -30 if moves_count < 10 else -10
+                    qlearning.update_terminal_connect4(loss_penalty)
+                    
                 return algo1, algo2, algo1  # Winner is algo1.
+                
             turn = "side2"
-        else:
+            
+        else:  # side2's turn
             move = get_move(game, player2_letter, algo2, use_alpha_beta, depth)
             print(f"\n{algo2} chooses move: {move}")
             game.make_move(move, player2_letter)
-           # game.print_board()
+            
             if game.current_winner == player2_letter:
                 print(f"{algo2} wins!")
+                
+                # Reward structure for Q-learning
                 if algo2 == "qlearning":
-                    qlearning.update_terminal_connect4(+100)  # Win: +1
+                    # Higher reward for winning quickly
+                    win_reward = 50 - (0.3 * moves_count)
+                    qlearning.update_terminal_connect4(max(10, win_reward))
                 if algo1 == "qlearning":
-                    qlearning.update_terminal_connect4(-100)  # Loss: -5
+                    # Loss penalty depends on game length
+                    loss_penalty = -30 if moves_count < 10 else -10
+                    qlearning.update_terminal_connect4(loss_penalty)
+                    
                 return algo1, algo2, algo2  # Winner is algo2.
+                
             turn = "side1"
+    
+    # It's a tie (board full)
     print("It's a tie!")
-    # For ties or terminal states not won, both get -1.
+    
+    # Small penalty for ties
     if algo1 == "qlearning":
-        qlearning.update_terminal_connect4(-200)
+        qlearning.update_terminal_connect4(-5)
     if algo2 == "qlearning":
-        qlearning.update_terminal_connect4(-200)
+        qlearning.update_terminal_connect4(-5)
+        
     return algo1, algo2, "tie"
 
 def save_results(results, parameters, folder_prefix="connect4_results"):
