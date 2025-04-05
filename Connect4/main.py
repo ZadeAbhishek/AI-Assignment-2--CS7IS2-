@@ -172,54 +172,114 @@ def save_results(results, parameters, folder_prefix="connect4_results"):
             pf.write(f"{key}: {value}\n")
     print(f"Parameters saved to {params_file}")
 
+def play_vs_human(ai_type, use_alpha_beta, depth=4):
+    game = Connect4()
+    player_letter = 'X'
+    ai_letter = 'O'
+
+    qlearning.load_model() if ai_type == 'qlearning' else None
+
+    print("\nYou are 'X'. The AI is 'O'. Let's play Connect4!")
+    game.print_board()
+    turn = "human" if random.random() < 0.5 else "ai"
+
+    while game.empty_squares():
+        if turn == "human":
+            valid = False
+            while not valid:
+                try:
+                    col = int(input("Your move (0-6): "))
+                    if col in game.available_moves():
+                        valid = True
+                        game.make_move(col, player_letter)
+                        print(f"You placed in column {col}")
+                    else:
+                        print("Column full or invalid. Try again.")
+                except ValueError:
+                    print("Invalid input. Enter a number between 0-6.")
+        else:
+            print("AI is thinking...")
+            move, _ = get_move(game, ai_letter, ai_type, use_alpha_beta, depth)
+            game.make_move(move, ai_letter)
+            print(f"AI placed in column {move}")
+
+        game.print_board()
+
+        if game.current_winner:
+            if turn == "human":
+                print("🎉 You win!")
+                if ai_type == "qlearning":
+                    qlearning.update_terminal_connect4(-10)
+                return
+            else:
+                print("💻 AI wins!")
+                if ai_type == "qlearning":
+                    qlearning.update_terminal_connect4(10)
+                return
+
+        turn = "ai" if turn == "human" else "human"
+
+    print("It's a draw!")
+    if ai_type == "qlearning":
+        qlearning.update_terminal_connect4(-5)
+
 def main_menu():
-    print("\n=== Connect4 Matchup Menu ===")
-    print("Select matchup type:")
+    print("\n=== Connect4 Menu ===")
     print("1. Baseline vs Minimax")
     print("2. Baseline vs Q-Learning")
     print("3. Minimax vs Q-Learning")
     print("4. Q-Learning vs Minimax")
+    print("5. Play against AI (Q-Learning or Minimax)")
     print("q. Quit")
-    return input("Enter your choice (1-4 or q): ").strip()
+    return input("Enter your choice (1-5 or q): ").strip()
 
 def main():
     while True:
         choice = main_menu()
         if choice.lower() == 'q':
-            print("Exiting program.")
             break
-        
+
+        if choice == "5":
+            print("\nChoose your AI opponent:")
+            print("1. Q-Learning")
+            print("2. Minimax")
+            ai_choice = input("Enter 1 or 2: ").strip()
+            ai_algo = "qlearning" if ai_choice == "1" else "minimax"
+            use_alpha_beta = False
+            depth = 4
+            if ai_algo == "minimax":
+                use_alpha_beta = select_alpha_beta()
+                depth = int(input("Enter depth for Minimax: "))
+            play_vs_human(ai_algo, use_alpha_beta, depth)
+            continue
+
+        # Matchup games for training/evaluation
         use_alpha_beta = False
         if choice in ["1", "3", "4"]:
             use_alpha_beta = select_alpha_beta()
-        
         depth = 4
         if choice in ["1", "3", "4"]:
-            depth = int(input("Enter depth limit for minimax search: "))
-        
-        total_games = int(input("How many iterations (games) do you want to run? "))
-        
-        # Determine algorithm names based on matchup.
+            depth = int(input("Enter depth limit for Minimax: "))
+        total_games = int(input("How many iterations (games) to run? "))
+
         if choice == "1":
-            player1_algo = "baseline"
-            player2_algo = "minimax"
+            player1_algo, player2_algo = "baseline", "minimax"
         elif choice == "2":
-            player1_algo = "baseline"
-            player2_algo = "qlearning"
+            player1_algo, player2_algo = "baseline", "qlearning"
         elif choice == "3":
-            player1_algo = "minimax"
-            player2_algo = "qlearning"
+            player1_algo, player2_algo = "minimax", "qlearning"
         elif choice == "4":
-            player1_algo = "qlearning"
-            player2_algo = "minimax"
+            player1_algo, player2_algo = "qlearning", "minimax"
         else:
-            player1_algo = "baseline"
-            player2_algo = "minimax"
-        
+            player1_algo, player2_algo = "baseline", "minimax"
+
         results = []
+        algo1_times = []
+        algo2_times = []
+        moves_per_game = []
         score_algo1 = 0
         score_algo2 = 0
-        
+
         params = {
             "matchup": choice,
             "use_alpha_beta": use_alpha_beta,
@@ -231,26 +291,32 @@ def main():
             "player1_algo": player1_algo,
             "player2_algo": player2_algo
         }
-        
+
         start_time = time.time()
         for i in range(total_games):
-            print(f"\nStarting Connect4 game {i+1} of {total_games}...")
-            # play_game_matchup returns (algo1, algo2, winner)
-            algo1_used, algo2_used, winner = play_game_matchup(choice, use_alpha_beta, depth)
+            print(f"\n🔁 Game {i+1}/{total_games}")
+            algo1_used, algo2_used, winner, algo1_time, algo2_time, moves_count = play_game_matchup(choice, use_alpha_beta, depth)
+            algo1_times.append(algo1_time)
+            algo2_times.append(algo2_time)
+            moves_per_game.append(moves_count)
+
             if winner == algo1_used:
                 score_algo1 += 1
             elif winner == algo2_used:
                 score_algo2 += 1
-            
+
             results.append([i+1, winner, score_algo1, score_algo2])
-            print(f"Current Score: {player1_algo}: {score_algo1}, {player2_algo}: {score_algo2}")
+            print(f"Score -> {player1_algo}: {score_algo1}, {player2_algo}: {score_algo2}")
         
         elapsed_time = time.time() - start_time
-        print(f"\nFinal Score for current session: {player1_algo}: {score_algo1}, {player2_algo}: {score_algo2}")
-        print(f"Total execution time: {elapsed_time:.2f} seconds")
-        
-        save_results(results, params, folder_prefix="connect4_results")
-        print("Session complete.\n")
+        print(f"\n📊 Session Complete!")
+        print(f"⏱️ Total time: {elapsed_time:.2f}s")
+        print(f"🏁 Final Score: {player1_algo}: {score_algo1}, {player2_algo}: {score_algo2}")
+
+        save_results(results, params, algo1_times, algo2_times, moves_per_game)
+
+        if player1_algo == "qlearning" or player2_algo == "qlearning":
+            qlearning.save_model()
 
 if __name__ == '__main__':
     main()
