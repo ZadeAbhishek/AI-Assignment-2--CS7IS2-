@@ -67,10 +67,11 @@ def play_game_matchup(matchup, use_alpha_beta, depth=4):
             game.print_board()
             if game.current_winner == player1_letter:
                 print(f"{algo1} wins!")
+                # If Q-learning is used, update terminal rewards:
                 if algo1 == "qlearning":
-                    qlearning.update_terminal_connect4(10)
+                    qlearning.update_terminal_connect4(+1)  # Win: +1
                 if algo2 == "qlearning":
-                    qlearning.update_terminal_connect4(-10)
+                    qlearning.update_terminal_connect4(-5)  # Loss: -5
                 return algo1, algo2, algo1  # Winner is algo1.
             turn = "side2"
         else:
@@ -81,16 +82,17 @@ def play_game_matchup(matchup, use_alpha_beta, depth=4):
             if game.current_winner == player2_letter:
                 print(f"{algo2} wins!")
                 if algo2 == "qlearning":
-                    qlearning.update_terminal_connect4(10)
+                    qlearning.update_terminal_connect4(+1)  # Win: +1
                 if algo1 == "qlearning":
-                    qlearning.update_terminal_connect4(-10)
+                    qlearning.update_terminal_connect4(-5)  # Loss: -5
                 return algo1, algo2, algo2  # Winner is algo2.
             turn = "side1"
     print("It's a tie!")
+    # For ties or terminal states not won, both get -1.
     if algo1 == "qlearning":
-        qlearning.update_terminal_connect4(0)
+        qlearning.update_terminal_connect4(-1)
     if algo2 == "qlearning":
-        qlearning.update_terminal_connect4(0)
+        qlearning.update_terminal_connect4(-1)
     return algo1, algo2, "tie"
 
 def save_results(results, parameters, folder_prefix="connect4_results"):
