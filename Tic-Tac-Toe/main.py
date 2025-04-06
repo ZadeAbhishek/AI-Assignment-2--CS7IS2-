@@ -46,7 +46,6 @@ def play_game_matchup(matchup, use_alpha_beta):
     player1_letter, player2_letter = 'X', 'O'
     turn = "player1" if random.random() < 0.5 else "player2"
     
-    # Track timing and moves
     moves_count = 0
     algo1_total_time = 0
     algo2_total_time = 0
@@ -65,8 +64,7 @@ def play_game_matchup(matchup, use_alpha_beta):
             if game.current_winner == player1_letter:
                 if algo1 == "qlearning": qlearning.update_terminal(10)
                 if algo2 == "qlearning": qlearning.update_terminal(-10)
-                
-                # Calculate average move times
+            
                 algo1_avg_time = algo1_total_time / algo1_moves if algo1_moves > 0 else 0
                 algo2_avg_time = algo2_total_time / algo2_moves if algo2_moves > 0 else 0
                 
@@ -82,7 +80,6 @@ def play_game_matchup(matchup, use_alpha_beta):
                 if algo2 == "qlearning": qlearning.update_terminal(10)
                 if algo1 == "qlearning": qlearning.update_terminal(-10)
                 
-                # Calculate average move times
                 algo1_avg_time = algo1_total_time / algo1_moves if algo1_moves > 0 else 0
                 algo2_avg_time = algo2_total_time / algo2_moves if algo2_moves > 0 else 0
                 
@@ -91,8 +88,7 @@ def play_game_matchup(matchup, use_alpha_beta):
 
     if algo1 == "qlearning": qlearning.update_terminal(0)
     if algo2 == "qlearning": qlearning.update_terminal(0)
-    
-    # Calculate average move times for tie games
+
     algo1_avg_time = algo1_total_time / algo1_moves if algo1_moves > 0 else 0
     algo2_avg_time = algo2_total_time / algo2_moves if algo2_moves > 0 else 0
     
@@ -145,13 +141,11 @@ def save_results(results, parameters, algo1_times, algo2_times, moves_per_game, 
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
     folder_name = f"{folder_prefix}_{now}"
     os.makedirs(folder_name, exist_ok=True)
-    
-    # Calculate overall statistics
+
     avg_algo1_time = sum(algo1_times) / len(algo1_times) if algo1_times else 0
     avg_algo2_time = sum(algo2_times) / len(algo2_times) if algo2_times else 0
     avg_moves = sum(moves_per_game) / len(moves_per_game) if moves_per_game else 0
     
-    # Save CSV file with timing data
     csv_file = os.path.join(folder_name, "results.csv")
     with open(csv_file, mode='w', newline='') as f:
         writer = csv.writer(f)
@@ -168,7 +162,6 @@ def save_results(results, parameters, algo1_times, algo2_times, moves_per_game, 
             writer.writerow(row + [algo1_times[i], algo2_times[i], moves_per_game[i]])
     print(f"CSV results saved to {csv_file}")
     
-    # Generate line chart for cumulative scores
     games = range(1, len(results) + 1)
     algo1_scores = [row[2] for row in results]
     algo2_scores = [row[3] for row in results]
@@ -185,7 +178,6 @@ def save_results(results, parameters, algo1_times, algo2_times, moves_per_game, 
     plt.close()
     print(f"Line chart saved to {line_chart_file}")
     
-    # Generate bar chart for final scores
     final_scores = [parameters['player1_algo'], parameters['player2_algo']]
     scores = [algo1_scores[-1] if algo1_scores else 0, algo2_scores[-1] if algo2_scores else 0]
     plt.figure(figsize=(8, 6))
@@ -198,7 +190,6 @@ def save_results(results, parameters, algo1_times, algo2_times, moves_per_game, 
     plt.close()
     print(f"Bar chart saved to {bar_chart_file}")
     
-    # Generate bar chart for average move times
     plt.figure(figsize=(8, 6))
     plt.bar(final_scores, [avg_algo1_time, avg_algo2_time], color=["blue", "orange"])
     plt.xlabel("Algorithm")
@@ -209,7 +200,6 @@ def save_results(results, parameters, algo1_times, algo2_times, moves_per_game, 
     plt.close()
     print(f"Move time chart saved to {time_chart_file}")
     
-    # Save parameters and statistics
     params_file = os.path.join(folder_name, "parameters_and_stats.txt")
     with open(params_file, "w") as pf:
         pf.write("Parameters used:\n")
@@ -287,10 +277,8 @@ def main():
         start_time = time.time()
         print("\nRunning games...")
         for i in range(total_games):
-            # Now returns winner, algo1, algo2, algo1_avg_time, algo2_avg_time, moves_count
             winner, algo1, algo2, algo1_time, algo2_time, moves_count = play_game_matchup(choice, use_alpha_beta)
-            
-            # Track move times and moves count
+        
             algo1_times.append(algo1_time)
             algo2_times.append(algo2_time)
             moves_per_game.append(moves_count)
@@ -308,8 +296,6 @@ def main():
         elapsed_time = time.time() - start_time
         print(f"\nFinal Score: {player1_algo} = {score1}, {player2_algo} = {score2}")
         print(f"Total execution time: {elapsed_time:.2f} seconds")
-        
-        # Calculate and display overall average move times
         avg_algo1_time = sum(algo1_times) / len(algo1_times) if algo1_times else 0
         avg_algo2_time = sum(algo2_times) / len(algo2_times) if algo2_times else 0
         avg_moves = sum(moves_per_game) / len(moves_per_game) if moves_per_game else 0
@@ -318,8 +304,6 @@ def main():
         print(f"Average moves per game: {avg_moves:.2f}")
         print(f"Average {player1_algo} move time: {avg_algo1_time:.6f} seconds")
         print(f"Average {player2_algo} move time: {avg_algo2_time:.6f} seconds")
-        
-        # Save all results with visualizations
         save_results(results, params, algo1_times, algo2_times, moves_per_game, folder_prefix="tictactoe_results")
         
         qlearning.save_model()

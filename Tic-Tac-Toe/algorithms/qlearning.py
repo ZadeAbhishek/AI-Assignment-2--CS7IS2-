@@ -1,14 +1,11 @@
-# qlearning.py - Corrected for TicTacToe
 import random
 import pickle
 import time
 
-# Global Q-learning variables
 Q_table = {}
 last_state = None
 last_action = None
 
-# Hyperparameters
 ALPHA = 0.3
 GAMMA = 0.9
 EPSILON = 0.7
@@ -16,7 +13,6 @@ EPSILON_MIN = 0.1
 EPSILON_DECAY = 0.999
 SAVE_FREQUENCY = 1000
 
-# Track save state
 game_counter = 0
 last_save_time = time.time()
 
@@ -50,7 +46,7 @@ def q_learning_move(game, player):
     if last_state is not None and last_action is not None:
         future_q = max(Q_table[current_state].values()) if Q_table[current_state] else 0.0
         old_q = Q_table[last_state].get(last_action, 0.0)
-        reward = 0  # Intermediate reward; can be shaped if needed
+        reward = 0
         Q_table[last_state][last_action] = old_q + ALPHA * (reward + GAMMA * future_q - old_q)
 
     last_state = current_state

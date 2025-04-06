@@ -7,6 +7,7 @@ import csv
 
 from game import Connect4
 from algorithms import minimax, qlearning, baseline
+from algorithms.minimax import get_states_explored
 
 def select_alpha_beta():
     response = input("Use alpha-beta pruning for minimax? (y/n): ").strip().lower()
@@ -29,72 +30,79 @@ def get_move(game, player_letter, algorithm, use_alpha_beta, depth=4, time_limit
     else:
         return random.choice(game.available_moves())
 
-def play_game_matchup(matchup, use_alpha_beta, depth=4):
-    """Play a game between two algorithms with improved Q-learning integration."""
-    # Create a new Connect4 game.
+def play_game_matchup(matchup, use_alpha_beta, depth=4, time_limit=1800):
     game = Connect4()
-    
-    # Determine algorithms for the two sides.
-    if matchup == "1":   # Baseline vs Minimax
+    if matchup == "1":
         algo1 = "baseline"
         algo2 = "minimax"
-    elif matchup == "2":  # Baseline vs Q-Learning
+    elif matchup == "2":
         algo1 = "baseline"
         algo2 = "qlearning"
-    elif matchup == "3":  # Minimax vs Q-Learning
+    elif matchup == "3":
         algo1 = "minimax"
         algo2 = "qlearning"
-    elif matchup == "4":  # Q-Learning vs Minimax
+    elif matchup == "4":
         algo1 = "qlearning"
         algo2 = "minimax"
     else:
         algo1 = "baseline"
         algo2 = "minimax"
     
-    # In Connect4, we use letters "X" and "O".
     player1_letter = 'X'
     player2_letter = 'O'
     
     print("\nNew Connect4 game!")
     
-    # Randomly decide who goes first.
     turn = "side1" if random.random() < 0.5 else "side2"
     
     moves_count = 0
     algo1_time = 0
     algo2_time = 0
+    start_time = time.time()
     
     while game.empty_squares():
         moves_count += 1
         
         if turn == "side1":
-            start_time = time.time()
-            move = get_move(game, player1_letter, algo1, use_alpha_beta, depth)
-            algo1_time += time.time() - start_time
+            current_time = time.time() - start_time
+            if current_time > time_limit:
+                print("Time limit exceeded for the game!")
+                break
+                
+            start_time_move = time.time()
+            move = get_move(game, player1_letter, algo1, use_alpha_beta, depth, time_limit)
+            algo1_time += time.time() - start_time_move
             print(f"\n{algo1} chooses move: {move}")
             game.make_move(move, player1_letter)
             
             if game.current_winner == player1_letter:
                 print(f"{algo1} wins!")
-                return algo1, algo2, algo1, algo1_time, algo2_time, moves_count  # Winner is algo1.
+                print(f"States explored: {get_states_explored()}")
+                return algo1, algo2, algo1, algo1_time, algo2_time, moves_count
                 
             turn = "side2"
             
-        else:  # side2's turn
-            start_time = time.time()
-            move = get_move(game, player2_letter, algo2, use_alpha_beta, depth)
-            algo2_time += time.time() - start_time
+        else:
+            current_time = time.time() - start_time
+            if current_time > time_limit:
+                print("Time limit exceeded for the game!")
+                break
+                
+            start_time_move = time.time()
+            move = get_move(game, player2_letter, algo2, use_alpha_beta, depth, time_limit)
+            algo2_time += time.time() - start_time_move
             print(f"\n{algo2} chooses move: {move}")
             game.make_move(move, player2_letter)
             
             if game.current_winner == player2_letter:
                 print(f"{algo2} wins!")
-                return algo1, algo2, algo2, algo1_time, algo2_time, moves_count  # Winner is algo2.
+                print(f"States explored: {get_states_explored()}")
+                return algo1, algo2, algo2, algo1_time, algo2_time, moves_count
                 
             turn = "side1"
     
-    # It's a tie (board full)
     print("It's a tie!")
+    print(f"States explored: {get_states_explored()}")
     return algo1, algo2, "tie", algo1_time, algo2_time, moves_count
 
 def play_vs_human(ai_type, use_alpha_beta, depth=4):
@@ -122,7 +130,7 @@ def play_vs_human(ai_type, use_alpha_beta, depth=4):
                     print("Invalid input. Enter a number between 0-6.")
         else:
             print("AI is thinking...")
-            move = get_move(game, ai_letter, ai_type, use_alpha_beta, depth)  # No need to unpack
+            move = get_move(game, ai_letter, ai_type, use_alpha_beta, depth)
             game.make_move(move, ai_letter)
             print(f"AI placed in column {move}")
 
@@ -140,26 +148,22 @@ def play_vs_human(ai_type, use_alpha_beta, depth=4):
 
     print("It's a draw!")
 
-    print("It's a draw!")
 def save_results(results, parameters, algo1_times=None, algo2_times=None, moves_per_game=None, start_time=None, folder_prefix="connect4_results"):
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
     folder_name = f"{folder_prefix}_{now}"
     os.makedirs(folder_name, exist_ok=True)
     
-    # Save CSV file (Append data)
     csv_file = os.path.join(folder_name, "results.csv")
     file_exists = os.path.exists(csv_file)
     
-    # Calculate overall statistics
     total_games = len(results)
     total_moves = sum(moves_per_game)
     average_moves = total_moves / total_games if total_games > 0 else 0
     avg_algo1_time = sum(algo1_times) / total_games if total_games > 0 else 0
     avg_algo2_time = sum(algo2_times) / total_games if total_games > 0 else 0
     score_algo1 = sum([1 for result in results if result[1] == parameters['player1_algo']])
-    score_algo2 = total_games - score_algo1  # Assuming the rest of the games are won by algo2 or tie
+    score_algo2 = total_games - score_algo1  
 
-    # Write the header if the file is being created
     with open(csv_file, mode='a' if file_exists else 'w', newline='') as f:
         writer = csv.writer(f)
         if not file_exists:
@@ -193,7 +197,6 @@ def save_results(results, parameters, algo1_times=None, algo2_times=None, moves_
     
     print(f"CSV results saved to {csv_file}")
     
-    # Save parameters and overall statistics
     stats_file = os.path.join(folder_name, "parameters_and_stats.txt")
     with open(stats_file, "w") as pf:
         pf.write(f"Parameters used for this run:\n")
@@ -207,7 +210,6 @@ def save_results(results, parameters, algo1_times=None, algo2_times=None, moves_
         pf.write(f"Average move time for {parameters['player2_algo']}: {avg_algo2_time:.6f} seconds\n")
     print(f"Parameters and statistics saved to {stats_file}")
     
-    # Generate line chart for scores
     games = list(range(1, total_games + 1))
     algo1_scores = [score_algo1] * total_games
     algo2_scores = [score_algo2] * total_games
@@ -224,7 +226,6 @@ def save_results(results, parameters, algo1_times=None, algo2_times=None, moves_
     plt.close()
     print(f"Line chart saved to {line_chart_file}")
     
-    # Generate average move time chart.
     plt.figure(figsize=(8, 6))
     plt.bar([parameters['player1_algo'], parameters['player2_algo']], [avg_algo1_time, avg_algo2_time], color=["blue", "orange"])
     plt.xlabel("Algorithm")
@@ -234,6 +235,7 @@ def save_results(results, parameters, algo1_times=None, algo2_times=None, moves_
     plt.savefig(move_time_chart_file)
     plt.close()
     print(f"Move time chart saved to {move_time_chart_file}")
+
 def main_menu():
     print("\n=== Connect4 Menu ===")
     print("1. Baseline vs Minimax")
@@ -264,7 +266,6 @@ def main():
             play_vs_human(ai_algo, use_alpha_beta, depth)
             continue
 
-        # Matchup games for training/evaluation
         use_alpha_beta = False
         if choice in ["1", "3", "4"]:
             use_alpha_beta = select_alpha_beta()
@@ -290,7 +291,6 @@ def main():
         moves_per_game = []
         score_algo1 = 0
         score_algo2 = 0
-
         params = {
             "matchup": choice,
             "use_alpha_beta": use_alpha_beta,
@@ -315,13 +315,12 @@ def main():
 
             results.append([i+1, winner, score_algo1, score_algo2])
             print(f"Score -> {player1_algo}: {score_algo1}, {player2_algo}: {score_algo2}")
-        
+
         elapsed_time = time.time() - start_time
         print(f"\n📊 Session Complete!")
         print(f"⏱️ Total time: {elapsed_time:.2f}s")
         print(f"🏁 Final Score: {player1_algo}: {score_algo1}, {player2_algo}: {score_algo2}")
 
-        # Save results and graphs, as before
         save_results(results, params, algo1_times, algo2_times, moves_per_game)
 
 if __name__ == '__main__':
