@@ -1,8 +1,7 @@
 def minimax(game, player, alpha=-float('inf'), beta=float('inf')):
-    max_player = 'O'  # Computer is maximizing
+    max_player = 'O'
     other_player = 'X' if player == 'O' else 'O'
     
-    # Terminal condition: if previous move won.
     if game.current_winner == other_player:
         return {"position": None, "score": (len(game.available_moves()) + 1) if other_player == max_player else -1 * (len(game.available_moves()) + 1)}
     elif not game.empty_squares():
@@ -16,7 +15,6 @@ def minimax(game, player, alpha=-float('inf'), beta=float('inf')):
     for possible_move in game.available_moves():
         game.make_move(possible_move, player)
         sim_score = minimax(game, other_player, alpha, beta)
-        # Undo move.
         game.board[possible_move] = ' '
         game.current_winner = None
         sim_score["position"] = possible_move
