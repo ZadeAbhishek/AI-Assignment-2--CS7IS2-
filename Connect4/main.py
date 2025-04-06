@@ -1,9 +1,9 @@
 import random
 import os
-import csv
 import time
 from datetime import datetime
 import matplotlib.pyplot as plt
+import csv
 
 from game import Connect4
 from algorithms import minimax, qlearning, baseline
@@ -61,123 +61,46 @@ def play_game_matchup(matchup, use_alpha_beta, depth=4):
     turn = "side1" if random.random() < 0.5 else "side2"
     
     moves_count = 0
+    algo1_time = 0
+    algo2_time = 0
     
     while game.empty_squares():
         moves_count += 1
         
         if turn == "side1":
+            start_time = time.time()
             move = get_move(game, player1_letter, algo1, use_alpha_beta, depth)
+            algo1_time += time.time() - start_time
             print(f"\n{algo1} chooses move: {move}")
             game.make_move(move, player1_letter)
             
             if game.current_winner == player1_letter:
                 print(f"{algo1} wins!")
-                
-                # Reward structure for Q-learning
-                if algo1 == "qlearning":
-                    # Higher reward for winning quickly
-                    win_reward = 50 - (0.3 * moves_count)  
-                    qlearning.update_terminal_connect4(max(10, win_reward))
-                if algo2 == "qlearning":
-                    # Loss penalty depends on game length
-                    loss_penalty = -30 if moves_count < 10 else -10
-                    qlearning.update_terminal_connect4(loss_penalty)
-                    
-                return algo1, algo2, algo1  # Winner is algo1.
+                return algo1, algo2, algo1, algo1_time, algo2_time, moves_count  # Winner is algo1.
                 
             turn = "side2"
             
         else:  # side2's turn
+            start_time = time.time()
             move = get_move(game, player2_letter, algo2, use_alpha_beta, depth)
+            algo2_time += time.time() - start_time
             print(f"\n{algo2} chooses move: {move}")
             game.make_move(move, player2_letter)
             
             if game.current_winner == player2_letter:
                 print(f"{algo2} wins!")
-                
-                # Reward structure for Q-learning
-                if algo2 == "qlearning":
-                    # Higher reward for winning quickly
-                    win_reward = 50 - (0.3 * moves_count)
-                    qlearning.update_terminal_connect4(max(10, win_reward))
-                if algo1 == "qlearning":
-                    # Loss penalty depends on game length
-                    loss_penalty = -30 if moves_count < 10 else -10
-                    qlearning.update_terminal_connect4(loss_penalty)
-                    
-                return algo1, algo2, algo2  # Winner is algo2.
+                return algo1, algo2, algo2, algo1_time, algo2_time, moves_count  # Winner is algo2.
                 
             turn = "side1"
     
     # It's a tie (board full)
     print("It's a tie!")
-    
-    # Small penalty for ties
-    if algo1 == "qlearning":
-        qlearning.update_terminal_connect4(-5)
-    if algo2 == "qlearning":
-        qlearning.update_terminal_connect4(-5)
-        
-    return algo1, algo2, "tie"
-
-def save_results(results, parameters, folder_prefix="connect4_results"):
-    now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    folder_name = f"{folder_prefix}_{now}"
-    os.makedirs(folder_name, exist_ok=True)
-    
-    # Save CSV file.
-    csv_file = os.path.join(folder_name, "results.csv")
-    with open(csv_file, mode='w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(["Game Number", "Result", f"{parameters['player1_algo']} Score", f"{parameters['player2_algo']} Score"])
-        for row in results:
-            writer.writerow(row)
-    print(f"CSV results saved to {csv_file}")
-    
-    # Generate line chart.
-    games = [row[0] for row in results]
-    algo1_scores = [row[2] for row in results]
-    algo2_scores = [row[3] for row in results]
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(games, algo1_scores, label=f"{parameters['player1_algo']} Score")
-    plt.plot(games, algo2_scores, label=f"{parameters['player2_algo']} Score")
-    plt.xlabel("Game Number")
-    plt.ylabel("Cumulative Score")
-    plt.title("Line Chart: Cumulative Score Over Connect4 Games")
-    plt.legend()
-    line_chart_file = os.path.join(folder_name, "cumulative_scores_line.png")
-    plt.savefig(line_chart_file)
-    plt.close()
-    print(f"Line chart saved to {line_chart_file}")
-    
-    # Generate bar chart.
-    final_scores = [parameters['player1_algo'], parameters['player2_algo']]
-    scores = [algo1_scores[-1] if algo1_scores else 0, algo2_scores[-1] if algo2_scores else 0]
-    plt.figure(figsize=(8, 6))
-    plt.bar(final_scores, scores, color=["blue", "orange"])
-    plt.xlabel("Algorithm")
-    plt.ylabel("Final Cumulative Score")
-    plt.title("Bar Chart: Final Cumulative Scores")
-    bar_chart_file = os.path.join(folder_name, "final_scores_bar.png")
-    plt.savefig(bar_chart_file)
-    plt.close()
-    print(f"Bar chart saved to {bar_chart_file}")
-    
-    # Save parameters.
-    params_file = os.path.join(folder_name, "parameters.txt")
-    with open(params_file, "w") as pf:
-        pf.write("Parameters used:\n")
-        for key, value in parameters.items():
-            pf.write(f"{key}: {value}\n")
-    print(f"Parameters saved to {params_file}")
+    return algo1, algo2, "tie", algo1_time, algo2_time, moves_count
 
 def play_vs_human(ai_type, use_alpha_beta, depth=4):
     game = Connect4()
     player_letter = 'X'
     ai_letter = 'O'
-
-    qlearning.load_model() if ai_type == 'qlearning' else None
 
     print("\nYou are 'X'. The AI is 'O'. Let's play Connect4!")
     game.print_board()
@@ -199,7 +122,7 @@ def play_vs_human(ai_type, use_alpha_beta, depth=4):
                     print("Invalid input. Enter a number between 0-6.")
         else:
             print("AI is thinking...")
-            move, _ = get_move(game, ai_letter, ai_type, use_alpha_beta, depth)
+            move = get_move(game, ai_letter, ai_type, use_alpha_beta, depth)  # No need to unpack
             game.make_move(move, ai_letter)
             print(f"AI placed in column {move}")
 
@@ -208,21 +131,109 @@ def play_vs_human(ai_type, use_alpha_beta, depth=4):
         if game.current_winner:
             if turn == "human":
                 print("🎉 You win!")
-                if ai_type == "qlearning":
-                    qlearning.update_terminal_connect4(-10)
                 return
             else:
                 print("💻 AI wins!")
-                if ai_type == "qlearning":
-                    qlearning.update_terminal_connect4(10)
                 return
 
         turn = "ai" if turn == "human" else "human"
 
     print("It's a draw!")
-    if ai_type == "qlearning":
-        qlearning.update_terminal_connect4(-5)
 
+    print("It's a draw!")
+def save_results(results, parameters, algo1_times=None, algo2_times=None, moves_per_game=None, start_time=None, folder_prefix="connect4_results"):
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder_name = f"{folder_prefix}_{now}"
+    os.makedirs(folder_name, exist_ok=True)
+    
+    # Save CSV file (Append data)
+    csv_file = os.path.join(folder_name, "results.csv")
+    file_exists = os.path.exists(csv_file)
+    
+    # Calculate overall statistics
+    total_games = len(results)
+    total_moves = sum(moves_per_game)
+    average_moves = total_moves / total_games if total_games > 0 else 0
+    avg_algo1_time = sum(algo1_times) / total_games if total_games > 0 else 0
+    avg_algo2_time = sum(algo2_times) / total_games if total_games > 0 else 0
+    score_algo1 = sum([1 for result in results if result[1] == parameters['player1_algo']])
+    score_algo2 = total_games - score_algo1  # Assuming the rest of the games are won by algo2 or tie
+
+    # Write the header if the file is being created
+    with open(csv_file, mode='a' if file_exists else 'w', newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow([
+                "Match No", "Use Alpha-Beta", "Total Games", "MINMAX-ALPHA", "MINMAX-BETA", 
+                "QL-ALPHA", "QL-GAMMA", "QL-EPSILON", "Player 1 Algorithm", "Player 2 Algorithm", 
+                "Player 1 Final Score", "Player 2 Final Score", "Tie Score", 
+                "Total Execution Time (s)", "Average Moves per Game", 
+                "Average Player 1 Move Time (s)", "Average Player 2 Move Time (s)"
+            ])
+        
+        writer.writerow([
+            total_games, 
+            "TRUE" if parameters['use_alpha_beta'] else "-",
+            total_games, 
+            parameters.get('MINMAX-ALPHA', '-'),
+            parameters.get('MINMAX-BETA', '-'),
+            parameters.get('QL-ALPHA', '-'),
+            parameters.get('QL-GAMMA', '-'),
+            parameters.get('QL-EPSILON', '-'),
+            parameters['player1_algo'], 
+            parameters['player2_algo'], 
+            score_algo1, 
+            score_algo2, 
+            total_games - score_algo1 - score_algo2, 
+            time.time() - start_time,
+            average_moves, 
+            avg_algo1_time, 
+            avg_algo2_time
+        ])
+    
+    print(f"CSV results saved to {csv_file}")
+    
+    # Save parameters and overall statistics
+    stats_file = os.path.join(folder_name, "parameters_and_stats.txt")
+    with open(stats_file, "w") as pf:
+        pf.write(f"Parameters used for this run:\n")
+        for key, value in parameters.items():
+            pf.write(f"{key}: {value}\n")
+        
+        pf.write(f"\nOverall Statistics:\n")
+        pf.write(f"Total games played: {total_games}\n")
+        pf.write(f"Average moves per game: {average_moves:.2f}\n")
+        pf.write(f"Average move time for {parameters['player1_algo']}: {avg_algo1_time:.6f} seconds\n")
+        pf.write(f"Average move time for {parameters['player2_algo']}: {avg_algo2_time:.6f} seconds\n")
+    print(f"Parameters and statistics saved to {stats_file}")
+    
+    # Generate line chart for scores
+    games = list(range(1, total_games + 1))
+    algo1_scores = [score_algo1] * total_games
+    algo2_scores = [score_algo2] * total_games
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(games, algo1_scores, label=f"{parameters['player1_algo']} Score")
+    plt.plot(games, algo2_scores, label=f"{parameters['player2_algo']} Score")
+    plt.xlabel("Game Number")
+    plt.ylabel("Cumulative Score")
+    plt.title("Line Chart: Cumulative Score Over Connect4 Games")
+    plt.legend()
+    line_chart_file = os.path.join(folder_name, "cumulative_scores_line.png")
+    plt.savefig(line_chart_file)
+    plt.close()
+    print(f"Line chart saved to {line_chart_file}")
+    
+    # Generate average move time chart.
+    plt.figure(figsize=(8, 6))
+    plt.bar([parameters['player1_algo'], parameters['player2_algo']], [avg_algo1_time, avg_algo2_time], color=["blue", "orange"])
+    plt.xlabel("Algorithm")
+    plt.ylabel("Average Move Time (seconds)")
+    plt.title("Average Move Time for Algorithms")
+    move_time_chart_file = os.path.join(folder_name, "avg_move_times_bar.png")
+    plt.savefig(move_time_chart_file)
+    plt.close()
+    print(f"Move time chart saved to {move_time_chart_file}")
 def main_menu():
     print("\n=== Connect4 Menu ===")
     print("1. Baseline vs Minimax")
@@ -285,9 +296,6 @@ def main():
             "use_alpha_beta": use_alpha_beta,
             "depth": depth,
             "total_games": total_games,
-            "ALPHA": qlearning.ALPHA,
-            "GAMMA": qlearning.GAMMA,
-            "EPSILON": qlearning.EPSILON,
             "player1_algo": player1_algo,
             "player2_algo": player2_algo
         }
@@ -313,10 +321,8 @@ def main():
         print(f"⏱️ Total time: {elapsed_time:.2f}s")
         print(f"🏁 Final Score: {player1_algo}: {score_algo1}, {player2_algo}: {score_algo2}")
 
+        # Save results and graphs, as before
         save_results(results, params, algo1_times, algo2_times, moves_per_game)
-
-        if player1_algo == "qlearning" or player2_algo == "qlearning":
-            qlearning.save_model()
 
 if __name__ == '__main__':
     main()

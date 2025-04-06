@@ -3,6 +3,8 @@ from algorithms.baseline import undo_move
 
 # Global node counter.
 node_count = 0
+ALPHA = -float('inf')
+BETA = float('inf')
 
 def evaluate_board(game, player):
     """
@@ -85,3 +87,33 @@ def minimax_no_ab_connect4(game, player, depth, start_time=None, time_limit=1800
             if sim_score["score"] < best["score"]:
                 best = sim_score
     return best
+
+def minimax_connect4_with_tracking(game, player, depth, alpha=-float('inf'), beta=float('inf'), start_time=None, time_limit=1800):
+    # Track if alpha-beta pruning is used
+    use_alpha_beta = True  # As this function is for alpha-beta, it will always use alpha-beta pruning.
+    
+    result = minimax_connect4(game, player, depth, alpha, beta, start_time, time_limit)
+    
+    # Return results along with alpha-beta parameters
+    return {
+        "position": result["position"],
+        "score": result["score"],
+        "use_alpha_beta": use_alpha_beta,
+        "alpha": alpha,
+        "beta": beta
+    }
+
+def minimax_no_ab_connect4_with_tracking(game, player, depth, start_time=None, time_limit=1800):
+    # Track if alpha-beta pruning is not used
+    use_alpha_beta = False
+    
+    result = minimax_no_ab_connect4(game, player, depth, start_time, time_limit)
+    
+    # Return results along with alpha-beta parameters
+    return {
+        "position": result["position"],
+        "score": result["score"],
+        "use_alpha_beta": use_alpha_beta,
+        "alpha": None,
+        "beta": None
+    }
